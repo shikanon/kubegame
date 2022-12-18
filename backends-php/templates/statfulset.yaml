@@ -1,0 +1,95 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "backends-php.fullname" . }}
+  labels:
+    {{- include "backends-php.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "backends-php.fullname" . }}
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "backends-php.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "backends-php.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: main
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        env:
+        {{- with .Values.env }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        - name: APP_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.labels['app.kubernetes.io/name']
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        ports:
+        {{- range .Values.servicePorts }}
+        - name: {{ .name }}
+          containerPort: {{ .port }}
+          protocol: TCP
+        {{- end}}
+        volumeMounts:
+        - name: log
+          mountPath: "{{ .Values.mouth.logPath }}"
+        - name: code
+          mountPath: "{{ .Values.mouth.codePath }}"
+      {{- if not .Values.sidercar.enabled }}
+      - name: sidecar
+        image: "{{ .Values.sidercar.image }}"
+      {{- end }}
+  volumeClaimTemplates:
+  - metadata:
+      name: log
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 20Gi
+      storageClassName: ebs-ssd
+      volumeMode: Filesystem
+  - metadata:
+      name: code
+    spec:
+      accessModes: [ "ReadWriteMany" ]
+      resources:
+        requests:
+          storage: 20Gi
+      storageClassName: "{{ .Values.mouth.codeStorageClass }}"
+      volumeMode: Filesystem

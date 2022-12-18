@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jupyter
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jupyter
+  template:
+    metadata:
+      labels:
+        app: jupyter
+    spec:
+      containers:
+      - command:
+        - jupyter
+        - lab
+        - --core-mode
+        - --ip=0.0.0.0
+        - --port=8000
+        image: registry.cn-beijing.aliyuncs.com/shikanon/jupyter:latest
+        imagePullPolicy: Always
+        name: jupyter
+        ports:
+        - containerPort: 8000
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          initialDelaySeconds: 1
+          periodSeconds: 10
+          successThreshold: 1
+          tcpSocket:
+            port: 8000
+          timeoutSeconds: 1
+        resources: {}
+        volumeMounts:
+        - mountPath: /home/jovyan
+          name: code
+      volumes:
+      - name: code
+        persistentVolumeClaim:
+          claimName: code

@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "backends-php.fullname" . }}
+  labels:
+    {{- include "backends-php.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+  {{- range .Values.servicePorts }}
+    - port: {{ .port }}
+      targetPort: {{ .port }}
+      protocol: TCP
+      name: {{ .name }}
+  {{- end}}
+  selector:
+    {{- include "backends-php.selectorLabels" . | nindent 4 }}

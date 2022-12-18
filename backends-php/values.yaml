@@ -1,0 +1,64 @@
+# Default values for backends-php.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+image:
+  repository: cr-cn-beijing.volces.com/shikanon/minecraft-server
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+# 名字，主要放在 annatations 和 label 里面，不填，默认是 releaseName
+name: ""
+
+# 名字全称，主要影响资源，比如 deploy，service, virtualservice 等，不填，默认是 releaseName
+fullname: ""
+
+# 端口，集群内暴露的，不是集群外
+servicePorts:
+- name: web-http
+  port: 80
+- name: other
+  port: 25565
+
+# 环境变量
+env: 
+- name: EULA
+  value: "true"
+- name: VERSION
+  value: 1.12.2
+- name: ONLINE_MODE
+  value: "false"
+
+
+# 资源
+resources: 
+  limits: # 历史最大值
+    cpu: 4
+    memory: 8Gi
+  requests: # 日常平均值
+    cpu: 100m
+    memory: 4Gi
+
+# 副本，如果启用扩缩容则无效
+replicaCount: 1
+
+# 弹性扩缩容
+autoscaling:
+  enabled: true #是否开启自动扩缩容
+  minReplicas: 1
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+# 挂载路径
+mouth: 
+  logPath: /usr/share/nginx/html
+  codePath: /data
+  # code所在的stoargeclasss
+  codeStorageClass: code
+  nasSubPath: /code
+
+# sidecar信息
+sidercar:
+  enabled: false
+  image: registry.cn-guangzhou.aliyuncs.com/shikanon/hexo-website:latest
